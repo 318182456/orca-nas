@@ -1,6 +1,9 @@
 name: orca
 services:
   orca:
+    extends:
+      file: ${TRAEFIK_PRESET_FILE:-./compose-presets.yml}
+      service: web
     image: ${ORCA_IMAGE:-ghcr.io/318182456/orca-nas:stable}
     build:
       context: .

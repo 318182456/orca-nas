@@ -85,3 +85,19 @@ sudo python3 scripts/install-task.py
 备份含认证数据，位于 backups；不要公开。自动更新检查 TCP 服务健康，不能保证每次上游更新都不存在业务兼容问题。Agent 进程检测是保守匹配，无法识别任意自定义程序；需要持续运行长任务时，在 DSM 停用自动更新任务。旧镜像、备份不自动清空。
 
 验证记录（2026/11/26）：GitHub Actions 首次发布成功，镜像匿名拉取返回 200；NAS 切换到 GitHub 镜像、健康检查、PTY 与远程配对 status 均通过；workspace/HOME 文件重建后保留；备份/恢复隔离测试验证 socket 排除及属主、权限、符号链接保留。尚未完成各 Agent 账号首次授权，也未完成完整 IDE 网页验证。
+
+## Traefik 接入
+
+通过 `extends.file` 复用共享 `web` 标签预设；NAS 的 `.env` 可指定 `TRAEFIK_PRESET_FILE=/volume1/docker/all/compose-presets.yml`，保持与其他堆栈一致。仓库内提供禁用状态的便携预设，其他机器无需具备 NAS 的共享目录。独立使用时设置 TRAEFIK_ENABLE=true、域名、HTTPS 端口和网络可达性。
+
+Orca 使用原生配对认证，客户端通过 WSS 建立连接；不在该协议前添加浏览器 SSO 重定向。直连 6768 保持私网绑定。共享预设里的域名和端口参数需在 NAS 本地 .env 可用，避免自动更新依赖 Dockhand 的内存环境。根路径 404 不代表 WebSocket 路由故障，也不意味着完整 IDE 网页可用。
+
+通过 HTTPS 代理配对时，地址需明确使用 WSS（示例域名需替换）：
+
+```sh
+docker compose exec orca orca pair --address wss://orca.example.com:8443
+```
+
+使用生成的完整配对链接添加远程服务器，不能只把 HTTPS 根地址当作配对码。ORCA_PAIRING_ADDRESS 也可设置为这个 WSS 地址用于服务器对外宣告；直接 6768 端口仍保留私网访问。浏览器根路径返回 404 是当前独立 Server 的已知行为，HTTPS/WSS 配对服务和完整网页 IDE 是不同能力。
+
+注意：本版本在容器中不传 `--address` 的 pair 命令仍可能选择桥接 IP，因此反代客户端配对必须显式指定 WSS 地址，不能只依赖服务器宣告地址。

@@ -14,3 +14,11 @@ description: 维护本项目的 Orca 官方 Server Docker 包装、NAS 认证与
 - 停止容器后 profile 仍可能留有 daemon socket。备份只复制普通文件、目录和符号链接，忽略 socket/FIFO/设备；`shutil.copy2` 不保留 UID/GID，恢复快照须显式保留属主，否则非 root 服务无法访问认证目录。
 - DSM TaskScheduler API v1 创建任务不能提交 monthly_week，即使读取响应有该字段。此项目安装器已移除；同名任务应幂等复用。
 - 构建在 GitHub Actions，NAS 只拉取。更新前识别 Agent 进程、备份，再切换并等待健康；不对升级后的数据库裸降级。自动更新只做服务健康验证，不能宣称所有 Agent 和 UI 均已完成验证。
+
+## Traefik WSS 接入实测（2026/11/26）
+
+- NAS 用 `extends.file` 选择现有 `/volume1/docker/all/compose-presets.yml` 的 web 服务；域名、端口和正则放 NAS .env，使后台更新不依赖 Dockhand 的全局变量注入。仓库内预设仅作便携回退，默认禁用。
+- `orca pair --address wss://域名:HTTPS端口 --json` 可生成 HTTPS 代理使用的原生配对链接，实际通过 Traefik 调用官方 CLI status 成功。浏览器根路径仍为404，不能据此判断 WSS 失败。
+- `serve --pairing-address wss://...` 能正确宣告 WSS，但本次不传 address 的 `orca pair` 仍选择容器桥接 IP；所以文档和用户命令必须显式传 `--address wss://...`，不能宣称自动选对。
+- 容器重建后旧测试配对请求曾返回 remote_runtime_unavailable；重新生成明确WSS地址的配对链接后成功。不要把这条错误直接归因为Traefik路由失效。
+- Dockhand 保存镜像时可能将 ORCA_IMAGE 插值改为固定 stable 字符串。确认唯一差异后恢复插值并核对生效镜像不变，否则回退脚本设置 ORCA_IMAGE 不能切换镜像。

@@ -1,0 +1,13 @@
+# Portable fallback. On this NAS select the shared preset via TRAEFIK_PRESET_FILE.
+# Orca keeps native pairing authentication; browser SSO redirects break native clients.
+services:
+  web:
+    labels:
+      - "traefik.enable=${TRAEFIK_ENABLE:-false}"
+      - "dockhand.subdomain=${TRAEFIK_SUBDOMAIN:-orca}"
+      - "dockhand.url=https://${TRAEFIK_SUBDOMAIN:-orca}.${TRAEFIK_DOMAIN:-example.invalid}:${TRAEFIK_HTTPS_PORT:-8443}"
+      - "traefik.http.routers.${TRAEFIK_SUBDOMAIN:-orca}.rule=Host(`${TRAEFIK_SUBDOMAIN:-orca}.${TRAEFIK_DOMAIN:-example.invalid}`)"
+      - "traefik.http.routers.${TRAEFIK_SUBDOMAIN:-orca}.entrypoints=websecure"
+      - "traefik.http.routers.${TRAEFIK_SUBDOMAIN:-orca}.tls=true"
+      - "traefik.http.routers.${TRAEFIK_SUBDOMAIN:-orca}.service=${TRAEFIK_SUBDOMAIN:-orca}-web"
+      - "traefik.http.services.${TRAEFIK_SUBDOMAIN:-orca}-web.loadbalancer.server.port=${TRAEFIK_CONTAINER_PORT:-6768}"
