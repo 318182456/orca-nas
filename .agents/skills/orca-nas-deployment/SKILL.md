@@ -26,3 +26,12 @@ description: 维护本项目的 Orca 官方 Server Docker 包装、NAS 认证与
 ## NAS 源码清理约定
 
 Git 仓库与 NAS 运行目录不做全量镜像。NAS 只部署运行 Compose、私有 env、自动更新/安装任务脚本及数据；容器入口和 Agent 安装脚本已在镜像内，不依赖宿主副本。现场清理先对全部候选创建并逐文件校验源码备份，再删除已确认无运行引用的文件；Compose 移除 build 后需比较渲染配置等价。初次直接删除曾被自动审批拒绝；不得绕过，须使用可恢复备份与引用证据。用户自建认证文件和运行数据不清理。
+
+## 代理、npm 与 Agent 沙箱（2026/11/26 实测）
+
+- 官方 1.4.277 的 headless MainHttpClient 使用 bundled Node 24.22.1 fetch；仅存在 HTTP(S)_PROXY 不代表 fetch 使用代理。启动前设置 NODE_USE_ENV_PROXY=1。本次 Google manifest 直连也成功，但 artifact 直连读取超时，代理读取成功，最终安装 Antigravity 1.5.18 且版本命令通过；不能用 manifest 200 代替完整安装验证。
+- npm 官方源经过此 NAS 当前代理时 curl TLS 失败、npm ECONNRESET，直连 200；NPM_CONFIG_NOPROXY=registry.npmjs.org 后 npm ping 成功。此为当前链路特例，不泛化为所有 npm 必须直连；不切换第三方镜像或禁用 TLS 来掩盖原因。
+- 默认 Agent launch 合并 process.env；Orca 代理、Agent/account env 可以覆盖。Git HTTPS 通过不代表 SSH、账号授权或模型生成通过。Git SSH 不自动使用 HTTP_PROXY。
+- Dockhand 页面注入的全局代理不在本地 .env；原生 Compose 自动更新会丢失它。更新器只从旧容器保留代理白名单，通过 subprocess env 传递；本地 .env 显式值和更新进程已有值优先。实测 DSM Compose 2.20.1 没有 config --environment；单引号 env 文件转义与预期不同，不用它中转凭据。用包含 $, 单引号及本地空值覆盖的隔离 Compose fixture 验证，不输出真实配置。
+- /workspace 是原始仓库；/data/home/orca/workspaces 是 Git 链接工作树。两者均持久化，不当重复目录清理。
+- Codex 缺少 PATH 上的 bwrap 时会使用 bundled helper；加入 bubblewrap 系统依赖后仍需实测 user namespace。不要靠 privileged、关闭沙箱或删除安全参数消除警告。

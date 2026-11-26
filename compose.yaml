@@ -16,6 +16,12 @@ services:
     ports:
       - "${BIND_IP:-127.0.0.1}:${ORCA_PORT:-6768}:6768"
     environment:
+      NODE_USE_ENV_PROXY: "1"
+      NPM_CONFIG_NOPROXY: ${NO_PROXY:-localhost,127.0.0.1,::1},registry.npmjs.org
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      ALL_PROXY: ${ALL_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,::1}
       TZ: Asia/Shanghai
       ORCA_PAIRING_ADDRESS: ${ORCA_PAIRING_ADDRESS:-127.0.0.1}
     volumes:

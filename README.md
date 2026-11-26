@@ -21,9 +21,9 @@ docker compose up -d --no-build
 
 | 宿主目录 | 容器目录 | 保存内容 |
 | --- | --- | --- |
-| `workspace` | `/workspace` | Git 项目、未提交文件和工作树；项目应始终使用此路径 |
+| `workspace` | `/workspace` | 原始 Git 项目与未提交文件，项目使用此稳定路径 |
 | `data/profile` | `/data/profile` | 项目登记、Orca 配置、会话及配对信息 |
-| `data/home` | `/data/home` | Agent 认证、SSH 密钥、Git 配置、GitHub CLI 登录 |
+| `data/home` | `/data/home` | Agent 认证、SSH 密钥、Git 配置、GitHub CLI 登录，以及 Orca 创建的 workspaces 链接工作树 |
 | `data/agents` | `/data/agents` | 独立安装的 Agent CLI 及版本记录 |
 
 重建容器不删除以上目录。不要使用 `docker compose down -v` 作为重置方法，也不要清理 `data`。Orca 内置数据库不直接改成 PG。
@@ -109,3 +109,17 @@ GitHub 构建使用完整仓库；NAS 无需保留 .github/workflows、Dockerfil
 当前 NAS 保留 compose.yaml、.env、scripts/auto-update.py、scripts/install-task.py、data/、workspace/、backups/ 和运行锁；Traefik 预设通过 .env 指向已存在的共享目录，不复制一份。用户自建认证笔记保持原位置，不纳入清理。
 
 后续不能整仓覆盖 NAS；只同步需要的运行文件。首次清理已把原部署源文件备份到 backups/runtime-source-*.tar.gz 并逐文件校验，清理前后的渲染配置除 build 外一致，不重启容器。
+
+## 代理与 Agent 网络
+
+Orca 官方包自带 Node 的 headless fetch 需要 `NODE_USE_ENV_PROXY=1` 才读取 HTTP_PROXY、HTTPS_PROXY 与 NO_PROXY。镜像和 Compose 均启用该开关；只设置代理地址不能保证下载经过代理。代理值由私有 env 或 Dockhand 全局变量注入，不能写入 Git。
+
+Agent 默认继承服务环境，但 Orca 的代理设置、Agent 环境与账号环境可以覆盖继承值。Git HTTPS 使用 HTTP(S) 代理；Git SSH 不会自动使用 HTTP_PROXY，需要单独配置 SSH ProxyCommand 或使用 HTTPS。npm 官方源在本次 NAS 代理链路发生 ECONNRESET、直连成功，因此仅对 registry.npmjs.org 设置 NPM_CONFIG_NOPROXY；Google 下载及模型接口继续使用代理。不要关闭 TLS 校验。
+
+NAS 自动更新通过进程环境保留运行容器的代理白名单；本地 .env 中显式配置优先（包括空值）。不把代理值写入临时文件，不复制其他 Agent 凭据。更新失败仍恢复旧镜像和匹配数据。
+
+`/workspace` 保存原始仓库；`/data/home/orca/workspaces` 是 Orca 创建的 Git 链接工作树，两个路径都持久化。工作树有独立工作文件且共享 Git 对象，不要合并目录或直接删除。
+
+镜像安装系统 bubblewrap，供 Codex 沙箱使用。宿主内核及 Docker 权限仍会影响沙箱可用性；缺少系统程序时的 bundled bubblewrap 提示不等于执行失败，不能通过禁用沙箱或授予 privileged 来隐藏提示。
+
+2026/11/26 实测：Antigravity 下载完成且版本命令返回 1.5.18；Git HTTPS 读取通过，OpenAI/Anthropic 接口收到 HTTP 响应；这些网络检查不代表账号授权或实际模型生成已验证。

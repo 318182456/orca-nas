@@ -47,8 +47,22 @@ def set_image(value):
     temporary.chmod(0o600)
     temporary.replace(path)
 
-def start():
-    command("docker", "compose", "up", "-d", "--no-build", "orca")
+PROXY_KEYS = {"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy"}
+
+
+def start(previous_environment):
+    # ASVS 1.2.5: pass literals through the process environment, never shell/env-file interpolation.
+    # .env values (including empty values) and the updater's own environment take precedence.
+    local_keys = set(re.findall(r"(?m)^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=", (ROOT / ".env").read_text()))
+    environment = dict(os.environ)
+    for entry in previous_environment:
+        key, separator, value = entry.partition("=")
+        if separator and key in PROXY_KEYS and key not in environment and key not in local_keys:
+            if "\x00" in value:
+                raise RuntimeError("Invalid proxy environment; update cancelled")
+            environment[key] = value
+    command("docker", "compose", "up", "-d", "--no-build", "orca", env=environment)
+
 
 def main():
     os.umask(0o077)
@@ -90,7 +104,7 @@ def main():
         raise
     try:
         set_image(IMAGE)
-        start()
+        start(old["Config"].get("Env", []))
         deadline = time.monotonic() + 150
         while time.monotonic() < deadline:
             state = inspect("orca")["State"]
@@ -109,7 +123,7 @@ def main():
         clone_tree(backup / "data", ROOT / "data")
         shutil.copy2(backup / ".env", ROOT / ".env")
         set_image(old["Image"])
-        start()
+        start(old["Config"].get("Env", []))
         print("Rolled back to the previous image and matching data; failed data preserved")
         raise
 
