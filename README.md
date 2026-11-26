@@ -50,7 +50,7 @@ SSH 密钥使用 `/data/home/.ssh`，权限目录 700、私钥 600；首次核�
 
 官方远程模式仍为 Beta。只通过内网、Tailscale 或可信认证隧道访问；不转发公网端口。默认 Compose 未填写 `.env` 时仅监听回环地址。启动不向日志打印配对凭据。桌面客户端与移动客户端需使用 Orca 的配对授权，NAS 上的 CLI 认证不等于客户端配对。使用 `docker compose exec orca orca pair --address NAS内网IP` 生成桌面配对链接；移动网页使用 `docker compose exec orca orca pair --mobile --address NAS内网IP`。配对链接只在可信终端展示，不贴入日志。完整桌面 IDE 与服务器包里的 mobile-web 界面能力不同。
 
-容器不授予 privileged，不挂载 Docker socket，不挂载 NAS 根目录。Agent 可读写挂载的项目与自身凭据，运行任意项目命令前应审阅权限。限制总内存 3 GiB、进程数 512；Agent 并发应从 1 开始。ASVS 13.1.1/13.3.2：认证文件不进入源码或镜像，备份也按凭据文件管理。
+容器不授予 privileged，不挂载 Docker socket，不挂载 NAS 根目录。Agent 可读写挂载的项目与自身凭据，运行任意项目命令前应审阅权限。限制总内存 3 GiB；此 DSM 内核不支持 Docker PIDs 限制；Agent 并发应从 1 开始。ASVS 13.1.1/13.3.2：认证文件不进入源码或镜像，备份也按凭据文件管理。
 
 ## 更新与回退
 
@@ -69,3 +69,19 @@ python3 scripts/upgrade.py 版本 官方SHA256 --apply
 
 官方文档：https://orca.dev/docs/remote-servers
 官方发行：https://github.com/stablyai/orca/releases
+
+## GitHub 构建与 NAS 自动更新
+
+公开仓库：https://github.com/318182456/orca-nas 。GitHub Actions 每 6 小时检查官方稳定版，校验包后构建 Linux amd64 镜像，发布到 `ghcr.io/318182456/orca-nas:stable` 和版本标签。构建不在 NAS 运行。
+
+NAS 使用 DSM 计划任务每天 05:30 执行 `scripts/auto-update.py`。安装命令：
+
+```sh
+sudo python3 scripts/install-task.py
+```
+
+手动检查更新：`sudo python3 scripts/auto-update.py`。流程：检测 Agent 进程→拉取镜像→拒绝自动降级→停机→受限备份 data/.env→更新→等待健康。失败时恢复旧镜像及匹配数据，失败的新数据保留以便调查。镜像未变化时不会重建。
+
+备份含认证数据，位于 backups；不要公开。自动更新检查 TCP 服务健康，不能保证每次上游更新都不存在业务兼容问题。Agent 进程检测是保守匹配，无法识别任意自定义程序；需要持续运行长任务时，在 DSM 停用自动更新任务。旧镜像、备份不自动清空。
+
+验证记录（2026/11/26）：GitHub Actions 首次发布成功，镜像匿名拉取返回 200；NAS 切换到 GitHub 镜像、健康检查、PTY 与远程配对 status 均通过；workspace/HOME 文件重建后保留；备份/恢复隔离测试验证 socket 排除及属主、权限、符号链接保留。尚未完成各 Agent 账号首次授权，也未完成完整 IDE 网页验证。

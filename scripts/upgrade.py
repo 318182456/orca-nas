@@ -40,7 +40,7 @@ def main():
             temporary.unlink()
             raise SystemExit("Checksum mismatch; running service was not changed")
         temporary.replace(artifact)
-    env = dict(os.environ, ORCA_VERSION=args.version, ORCA_SHA256=args.sha256.lower())
+    env = dict(os.environ, ORCA_VERSION=args.version, ORCA_SHA256=args.sha256.lower(), ORCA_IMAGE="local/orca-nas:" + args.version)
     run("docker", "compose", "build", env=env)
     if not args.apply:
         print("Candidate image built. Repeat with --apply after stopping agent tasks.")
@@ -57,7 +57,7 @@ def main():
         raise
     config = ROOT / ".env"
     text = config.read_text()
-    for key, value in (("ORCA_VERSION", args.version), ("ORCA_SHA256", args.sha256.lower())):
+    for key, value in (("ORCA_VERSION", args.version), ("ORCA_SHA256", args.sha256.lower()), ("ORCA_IMAGE", "local/orca-nas:" + args.version)):
         line = f"{key}={value}"
         pattern = rf"(?m)^{key}=.*$"
         text = re.sub(pattern, line, text) if re.search(pattern, text) else text.rstrip() + "\n" + line + "\n"

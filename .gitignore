@@ -4,3 +4,5 @@ workspace/
 backups/
 .cache/
 *.tar.gz
+.update.lock
+.env.next
