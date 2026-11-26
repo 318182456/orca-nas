@@ -123,3 +123,5 @@ NAS 自动更新通过进程环境保留运行容器的代理白名单；本地 
 镜像安装系统 bubblewrap，供 Codex 沙箱使用。宿主内核及 Docker 权限仍会影响沙箱可用性；缺少系统程序时的 bundled bubblewrap 提示不等于执行失败，不能通过禁用沙箱或授予 privileged 来隐藏提示。
 
 2026/11/26 实测：Antigravity 下载完成且版本命令返回 1.5.18；Git HTTPS 读取通过，OpenAI/Anthropic 接口收到 HTTP 响应；这些网络检查不代表账号授权或实际模型生成已验证。
+
+沙箱兼容性限制（2026/11/26）：当前运行容器的 bundled bwrap 实测 `Failed to make / slave: Permission denied`；用户命名空间可创建，但其中对根挂载设置传播属性返回 EACCES。系统依赖已加入镜像，尚不能据此宣称 DSM 5.10.55+ 上的 Codex 沙箱可用；未修改宿主安全设置、未扩大容器权限。存在运行中的 Codex 时不自动重建服务。

@@ -35,3 +35,5 @@ Git 仓库与 NAS 运行目录不做全量镜像。NAS 只部署运行 Compose�
 - Dockhand 页面注入的全局代理不在本地 .env；原生 Compose 自动更新会丢失它。更新器只从旧容器保留代理白名单，通过 subprocess env 传递；本地 .env 显式值和更新进程已有值优先。实测 DSM Compose 2.20.1 没有 config --environment；单引号 env 文件转义与预期不同，不用它中转凭据。用包含 $, 单引号及本地空值覆盖的隔离 Compose fixture 验证，不输出真实配置。
 - /workspace 是原始仓库；/data/home/orca/workspaces 是 Git 链接工作树。两者均持久化，不当重复目录清理。
 - Codex 缺少 PATH 上的 bwrap 时会使用 bundled helper；加入 bubblewrap 系统依赖后仍需实测 user namespace。不要靠 privileged、关闭沙箱或删除安全参数消除警告。
+
+- 此 DSM 5.10.55+ 上 user namespace 创建成功，但新命名空间内对 / 执行递归 slave 挂载返回 EACCES，bundled bwrap 报 Failed to make / slave: Permission denied。不能将其误报为代理或纯缺包；是否系统包也失败需单独实测，不在未授权情况下扩大宿主/容器权限。
