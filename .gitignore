@@ -1,0 +1,6 @@
+.env
+data/
+workspace/
+backups/
+.cache/
+*.tar.gz

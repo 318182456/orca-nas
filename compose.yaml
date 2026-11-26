@@ -1,0 +1,35 @@
+name: orca
+services:
+  orca:
+    image: ${ORCA_IMAGE:-ghcr.io/318182456/orca-nas:stable}
+    build:
+      context: .
+      args:
+        ORCA_VERSION: ${ORCA_VERSION:-1.4.277}
+        ORCA_SHA256: ${ORCA_SHA256:-cc0be421b6dc995e74c855db21d7f6c428ed759419d6a494c8ad08773812ea29}
+    container_name: orca
+    restart: always
+    user: "${PUID:-1026}:${PGID:-100}"
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${ORCA_PORT:-6768}:6768"
+    environment:
+      TZ: Asia/Shanghai
+      ORCA_PAIRING_ADDRESS: ${ORCA_PAIRING_ADDRESS:-127.0.0.1}
+    volumes:
+      - ./data:/data
+      - ./workspace:/workspace
+    mem_limit: 3g
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    healthcheck:
+      test: [CMD, node, -e, "const n=require('net').connect(6768,'127.0.0.1');n.on('connect',()=>{n.end();process.exit(0)});n.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
