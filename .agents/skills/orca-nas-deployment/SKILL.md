@@ -36,4 +36,4 @@ Git 仓库与 NAS 运行目录不做全量镜像。NAS 只部署运行 Compose�
 - /workspace 是原始仓库；/data/home/orca/workspaces 是 Git 链接工作树。两者均持久化，不当重复目录清理。
 - Codex 缺少 PATH 上的 bwrap 时会使用 bundled helper；加入 bubblewrap 系统依赖后仍需实测 user namespace。不要靠 privileged、关闭沙箱或删除安全参数消除警告。
 
-- 此 DSM 5.10.55+ 上 user namespace 创建成功，但新命名空间内对 / 执行递归 slave 挂载返回 EACCES，bundled bwrap 报 Failed to make / slave: Permission denied。不能将其误报为代理或纯缺包；是否系统包也失败需单独实测，不在未授权情况下扩大宿主/容器权限。
+- 此 DSM 5.10.55+ 上 user namespace 创建成功，但新命名空间内对 / 执行递归 slave 挂载返回 EACCES，bundled bwrap 报 Failed to make / slave: Permission denied。不能将其误报为代理或纯缺包；新镜像系统 bubblewrap 0.8.0 在相同用户/权限的无网络、无数据挂载测试容器中也失败；不在未授权情况下扩大宿主/容器权限。
