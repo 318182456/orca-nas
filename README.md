@@ -15,8 +15,8 @@ chmod 700 data
 官方发行包放入 `.cache/orca-server-linux-x64.tar.gz`，Docker 构建自动校验。运行：
 
 ```sh
-docker compose build
-docker compose up -d
+docker compose pull
+docker compose up -d --no-build
 ```
 
 | 宿主目录 | 容器目录 | 保存内容 |
@@ -101,3 +101,11 @@ docker compose exec orca orca pair --address wss://orca.example.com:8443
 使用生成的完整配对链接添加远程服务器，不能只把 HTTPS 根地址当作配对码。ORCA_PAIRING_ADDRESS 也可设置为这个 WSS 地址用于服务器对外宣告；直接 6768 端口仍保留私网访问。浏览器根路径返回 404 是当前独立 Server 的已知行为，HTTPS/WSS 配对服务和完整网页 IDE 是不同能力。
 
 注意：本版本在容器中不传 `--address` 的 pair 命令仍可能选择桥接 IP，因此反代客户端配对必须显式指定 WSS 地址，不能只依赖服务器宣告地址。
+
+## NAS 仅部署运行文件
+
+GitHub 构建使用完整仓库；NAS 无需保留 .github/workflows、Dockerfile、源码技能、文档及构建缓存。NAS 的 compose.yaml 移除 build 段，使用 GitHub 发布的镜像，运行参数与数据卷保持原样。
+
+当前 NAS 保留 compose.yaml、.env、scripts/auto-update.py、scripts/install-task.py、data/、workspace/、backups/ 和运行锁；Traefik 预设通过 .env 指向已存在的共享目录，不复制一份。用户自建认证笔记保持原位置，不纳入清理。
+
+后续不能整仓覆盖 NAS；只同步需要的运行文件。首次清理已把原部署源文件备份到 backups/runtime-source-*.tar.gz 并逐文件校验，清理前后的渲染配置除 build 外一致，不重启容器。

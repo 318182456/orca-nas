@@ -22,3 +22,7 @@ description: 维护本项目的 Orca 官方 Server Docker 包装、NAS 认证与
 - `serve --pairing-address wss://...` 能正确宣告 WSS，但本次不传 address 的 `orca pair` 仍选择容器桥接 IP；所以文档和用户命令必须显式传 `--address wss://...`，不能宣称自动选对。
 - 容器重建后旧测试配对请求曾返回 remote_runtime_unavailable；重新生成明确WSS地址的配对链接后成功。不要把这条错误直接归因为Traefik路由失效。
 - Dockhand 保存镜像时可能将 ORCA_IMAGE 插值改为固定 stable 字符串。确认唯一差异后恢复插值并核对生效镜像不变，否则回退脚本设置 ORCA_IMAGE 不能切换镜像。
+
+## NAS 源码清理约定
+
+Git 仓库与 NAS 运行目录不做全量镜像。NAS 只部署运行 Compose、私有 env、自动更新/安装任务脚本及数据；容器入口和 Agent 安装脚本已在镜像内，不依赖宿主副本。现场清理先对全部候选创建并逐文件校验源码备份，再删除已确认无运行引用的文件；Compose 移除 build 后需比较渲染配置等价。初次直接删除曾被自动审批拒绝；不得绕过，须使用可恢复备份与引用证据。用户自建认证文件和运行数据不清理。
